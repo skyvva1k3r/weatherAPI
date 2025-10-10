@@ -5,37 +5,24 @@ from dotenv import load_dotenv
 import os
 import time
 from operator import itemgetter
-from flask import Flask, jsonify, request
+from flask import Flask, jsonify, request, send_file
 from flask_cors import CORS
 import subprocess
 load_dotenv()
-API_KEY = os.getenv("API_KEY")
-
-#  top_cities = [
-#     "Vienna",
-#     "Copenhagen",
-#     "Zurich",
-#     "Melbourne",
-#     "Vancouver",
-#     "Tokyo",
-#     "Osaka",
-#     "Toronto",
-#     "Berlin",
-#     "Amsterdam",
-#     "Sydney",
-#     "Stockholm",
-#     "Munich",
-#     "Singapore",
-#     "Helsinki",
-#     "Oslo",
-#     "Calgary",
-#     "Seoul",
-#     "London",
-# "Auckland"
-# ]
 
 app = Flask(__name__)
 CORS(app)
+
+@app.route('/')
+def index():
+    """Главная страница - отдаем HTML"""
+    try:
+        return send_file('index.html')
+    except:
+        return jsonify({"message": "Weather API is running. Use /weather endpoint"}), 200
+
+API_KEY = os.getenv("API_KEY")
+
 
 r = redis.Redis(host='localhost', port=6379, decode_responses=True)
 key = f"{API_KEY}"
@@ -65,7 +52,9 @@ def get_data(city, days):
         req = ["tempmax", "tempmin", "feelslike", "pressure", "windspeed", "visibility", "datetime", "icon",
                "conditions", "humidity", "precip", "precipprob", "uvindex"]
         res = []
-        if r.exists(f"{city}_{cur}") == 0:
+        print(r.ping())
+        
+        if r.exists(f"{city}_{cur}") == 0 :
             print("No data in Redis, fetching...")
             response = requests.get(f"https://weather.visualcrossing.com/VisualCrossingWebServices/rest/services/timeline/{city}?key={key}")
             if response.status_code != 200:
@@ -86,7 +75,7 @@ def get_data(city, days):
                 "days" : days,
                 "data" : res}
 
-# get_data("vienna", 10)
 
 if __name__ == '__main__':
-    app.run()
+    port = int(os.environ.get('PORT', 5000))
+    app.run(host='0.0.0.0', port=port, debug=False)
