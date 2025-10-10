@@ -6,6 +6,7 @@ import os
 import time
 from operator import itemgetter
 from flask import Flask, jsonify, request
+from flask_cors import CORS
 import subprocess
 load_dotenv()
 API_KEY = os.getenv("API_KEY")
@@ -34,6 +35,7 @@ API_KEY = os.getenv("API_KEY")
 # ]
 
 app = Flask(__name__)
+CORS(app)
 
 r = redis.Redis(host='localhost', port=6379, decode_responses=True)
 key = f"{API_KEY}"
