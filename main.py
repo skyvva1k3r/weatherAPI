@@ -41,16 +41,18 @@ key = f"{API_KEY}"
 @app.route('/weather')
 def weather():
     city = request.args.get('city')
-    days = request.args.get('days')
-    if days is None:
-        return jsonify({"error": "Days parameter is required"}), 400
-    days = int(days)
-    if days > 14:
+    days = request.args.get('days', 7)
+    if city is None:
+        return jsonify({"error": "City parameter is required"}), 400
+    try :
+        days = int(days)
+    except ValueError:
+        return jsonify({"error": "Days parameter must be an integer"}), 400
+    if days > 15:
         return jsonify({"error": "Days parameter must be less than 14"}), 400
     if days < 1:
         return jsonify({"error": "Days parameter must be greater than 0"}), 400
-    if city is None:
-        return jsonify({"error": "City parameter is required"}), 400
+
     result = get_data(city.lower(), days)
     if "error" in result: 
         return jsonify(result), 404
@@ -58,8 +60,9 @@ def weather():
 
 def get_data(city, days):
         cur = f"{time.strftime('%Y-%m-%d', time.localtime())}"
-        req = ["tempmax", "tempmin", "feelslike", "pressure", "windspeed", "visibility"]
-        res = dict()
+        req = ["tempmax", "tempmin", "feelslike", "pressure", "windspeed", "visibility", "datetime", "icon",
+               "conditions", "humidity", "precip", "precipprob", "uvindex"]
+        res = []
         if r.exists(f"{city}_{cur}") == 0:
             print("No data in Redis, fetching...")
             response = requests.get(f"https://weather.visualcrossing.com/VisualCrossingWebServices/rest/services/timeline/{city}?key={key}")
@@ -68,16 +71,20 @@ def get_data(city, days):
             r.set(f"{city}_{cur}", json.dumps(response.json()))
         else: 
             print("Data in Redis, fetching...")
-        temp = json.loads(r.get(f"{city}_{cur}"))["days"]
+        load = json.loads(r.get(f"{city}_{cur}"))["days"]
         for i in range(days):
-            res.update({i : {}})
+            temp = dict()
             for j in req:
-                res[i].update({j : temp[i][j]})
+                temp.update({j : load[i][j]})
                 if j == "tempmax" or j == "tempmin" or j == "feelslike":
-                    res[i][j] = round(((res[i][j] -32)*5)/9, 1)
-        return res
+                    temp[j] = round(((temp[j] -32)*5)/9, 1)
+            res.append(temp)
+        return {"status" : "success", 
+                "city" : city, 
+                "days" : days,
+                "data" : res}
 
-# get_data("")
+# get_data("vienna", 10)
 
 if __name__ == '__main__':
     app.run()
