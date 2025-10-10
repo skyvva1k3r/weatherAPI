@@ -4,10 +4,11 @@ import json
 from dotenv import load_dotenv
 import os
 import time
+from operator import itemgetter
+from flask import Flask, jsonify, request
+import subprocess
 load_dotenv()
 API_KEY = os.getenv("API_KEY")
-
-
 
 #  top_cities = [
 #     "Vienna",
@@ -32,23 +33,34 @@ API_KEY = os.getenv("API_KEY")
 # "Auckland"
 # ]
 
-
+app = Flask(__name__)
 
 r = redis.Redis(host='localhost', port=6379, decode_responses=True)
 key = f"{API_KEY}"
 
-city = "Moscow"
-date = "2025-10-09"
-cur = f"{time.strftime('%Y-%m-%d', time.localtime())}"
+@app.route('/weather')
+def weather():
+    city = request.args.get('city')
+    return jsonify(get_data(city))
 
-
-def get_data(city, date, cur, key):
-        if r.exists(f"{city}_{date}_{cur}") == 0:
+def get_data(city):
+        cur = f"{time.strftime('%Y-%m-%d', time.localtime())}"
+        req = ["tempmax", "tempmin", "feelslike", "pressure", "windspeed", "visibility"]
+        res = []
+        if r.exists(f"{city}_{cur}") == 0:
             print("No data in Redis, fetching...")
-            r.set(f"{city}_{date}_{cur}", json.dumps(requests.get(f"http://api.weatherapi.com/v1/forecast.json?key={key}&q={city}&dt={date}&aqi=no&alerts=no").json()))
+            r.set(f"{city}_{cur}", json.dumps(requests.get(f"https://weather.visualcrossing.com/VisualCrossingWebServices/rest/services/timeline/{city}?key={key}").json()))
         else: 
             print("Data in Redis, fetching...")
-        print(json.loads(r.get(f"{city}_{date}_{cur}"))["forecast"]["forecastday"][0]["day"]["maxtemp_c"])
+        for i in range(14):
+            res.append(itemgetter(*req)(json.loads(r.get(f"{city}_{cur}"))["days"][i]))
+            res[i] = list(res[i])
+            res[i][0] = round(((res[i][0] -32)*5)/9, 1)
+            res[i][1] = round(((res[i][1] -32)*5)/9, 1)
+            res[i][2] = round(((res[i][2] -32)*5)/9, 1)
+            res[i] = tuple(res[i])
+        return res
 
 
-get_data(city, date, cur, key)
+if __name__ == '__main__':
+    app.run()
