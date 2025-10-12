@@ -312,3 +312,5 @@ MIT License - свободное использование
 ---
 
 **Enjoy the weather! ☀️🌧️❄️**
+
+https://roadmap.sh/projects/weather-api-wrapper-service
