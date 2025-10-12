@@ -52,17 +52,24 @@ def get_data(city, days):
         req = ["tempmax", "tempmin", "feelslike", "pressure", "windspeed", "visibility", "datetime", "icon",
                "conditions", "humidity", "precip", "precipprob", "uvindex"]
         res = []
-        print(r.ping())
-        
-        if r.exists(f"{city}_{cur}") == 0 :
-            print("No data in Redis, fetching...")
-            response = requests.get(f"https://weather.visualcrossing.com/VisualCrossingWebServices/rest/services/timeline/{city}?key={key}")
-            if response.status_code != 200:
-                return {"error": "City not found"}
-            r.set(f"{city}_{cur}", json.dumps(response.json()))
-        else: 
-            print("Data in Redis, fetching...")
-        load = json.loads(r.get(f"{city}_{cur}"))["days"]
+        online = None
+        try:
+            r.ping()
+            online = True
+        except redis.ConnectionError:
+            online = False
+        if online:
+            if r.exists(f"{city}_{cur}") == 0:
+                print("No data in Redis, fetching...")
+                response = requests.get(f"https://weather.visualcrossing.com/VisualCrossingWebServices/rest/services/timeline/{city}?key={key}")
+                if response.status_code != 200:
+                    return {"error": "City not found"}
+                r.set(f"{city}_{cur}", json.dumps(response.json()))
+            else: 
+                print("Data in Redis, fetching...")
+                load = json.loads(r.get(f"{city}_{cur}"))["days"]
+        else:
+            load = requests.get(f"https://weather.visualcrossing.com/VisualCrossingWebServices/rest/services/timeline/{city}?key={key}").json()["days"]
         for i in range(days):
             temp = dict()
             for j in req:
@@ -75,6 +82,7 @@ def get_data(city, days):
                 "days" : days,
                 "data" : res}
 
+# print(get_data("Moscow", 7))
 
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
