@@ -67,7 +67,7 @@ def get_data(city, days):
                 r.set(f"{city}_{cur}", json.dumps(response.json()))
             else: 
                 print("Data in Redis, fetching...")
-                load = json.loads(r.get(f"{city}_{cur}"))["days"]
+            load = json.loads(r.get(f"{city}_{cur}"))["days"]
         else:
             load = requests.get(f"https://weather.visualcrossing.com/VisualCrossingWebServices/rest/services/timeline/{city}?key={key}").json()["days"]
         for i in range(days):
