@@ -129,7 +129,34 @@
                     return { flag: '', label: '' };
                 }
 
-                const candidates = [
+                const extractCountryStrings = (value) => {
+                    if (!value) {
+                        return [];
+                    }
+                    if (typeof value === 'string') {
+                        return [value];
+                    }
+                    if (typeof value !== 'object') {
+                        return [];
+                    }
+                    return [
+                        value.flag,
+                        value.emoji,
+                        value.code,
+                        value.iso2,
+                        value.alpha2,
+                        value.iso3,
+                        value.alpha3,
+                        value.countryCode,
+                        value.country_code,
+                        value.name,
+                        value.label,
+                        value.country,
+                    ].filter(Boolean);
+                };
+
+                const dayData = Array.isArray(data.data) ? data.data[0] : null;
+                const rawCandidates = [
                     data.countryCode,
                     data.country_code,
                     data.country,
@@ -139,29 +166,23 @@
                     data.city?.country,
                     data.city?.countryCode,
                     data.city?.country_code,
+                    data.countryCode?.country,
+                    data.country_code?.country,
+                    dayData?.countryCode,
+                    dayData?.country_code,
+                    dayData?.country,
+                    dayData?.location?.country,
                 ];
 
                 const objectCandidates = [
                     data.country,
                     data.location?.country,
                     data.city?.country,
+                    data.countryCode,
+                    data.country_code,
+                    dayData?.country,
+                    dayData?.location?.country,
                 ];
-
-                for (const item of objectCandidates) {
-                    if (item && typeof item === 'object') {
-                        candidates.unshift(
-                            item.flag,
-                            item.emoji,
-                            item.code,
-                            item.iso2,
-                            item.alpha2,
-                            item.countryCode,
-                            item.country_code,
-                            item.name,
-                            item.label
-                        );
-                    }
-                }
 
                 let label = '';
                 for (const item of objectCandidates) {
@@ -170,10 +191,12 @@
                     }
                 }
 
-                for (const item of candidates) {
+                const stringCandidates = rawCandidates.flatMap(extractCountryStrings);
+                for (const item of stringCandidates) {
                     const flag = getCountryFlag(item);
                     if (flag) {
-                        return { flag, label: label || item };
+                        const normalizedLabel = label || (item.length > 2 ? item : '');
+                        return { flag, label: normalizedLabel };
                     }
                 }
 
