@@ -102,6 +102,107 @@
                 return iconMap[icon] || '🌤️';
             };
 
+            const getCountryFlag = (country) => {
+                if (!country || typeof country !== 'string') {
+                    return '';
+                }
+
+                const trimmed = country.trim();
+                if (!trimmed) {
+                    return '';
+                }
+
+                if (/[\uD83C][\uDDE6-\uDDFF]/.test(trimmed)) {
+                    return trimmed;
+                }
+
+                if (trimmed.length !== 2) {
+                    return '';
+                }
+
+                const code = trimmed.toUpperCase();
+                return String.fromCodePoint(...[...code].map((char) => 127397 + char.charCodeAt()));
+            };
+
+            const resolveCountryDetails = (data) => {
+                if (!data) {
+                    return { flag: '', label: '' };
+                }
+
+                const extractCountryStrings = (value) => {
+                    if (!value) {
+                        return [];
+                    }
+                    if (typeof value === 'string') {
+                        return [value];
+                    }
+                    if (typeof value !== 'object') {
+                        return [];
+                    }
+                    return [
+                        value.flag,
+                        value.emoji,
+                        value.code,
+                        value.iso2,
+                        value.alpha2,
+                        value.iso3,
+                        value.alpha3,
+                        value.countryCode,
+                        value.country_code,
+                        value.name,
+                        value.label,
+                        value.country,
+                    ].filter(Boolean);
+                };
+
+                const dayData = Array.isArray(data.data) ? data.data[0] : null;
+                const rawCandidates = [
+                    data.countryCode,
+                    data.country_code,
+                    data.country,
+                    data.location?.countryCode,
+                    data.location?.country_code,
+                    data.location?.country,
+                    data.city?.country,
+                    data.city?.countryCode,
+                    data.city?.country_code,
+                    data.countryCode?.country,
+                    data.country_code?.country,
+                    dayData?.countryCode,
+                    dayData?.country_code,
+                    dayData?.country,
+                    dayData?.location?.country,
+                ];
+
+                const objectCandidates = [
+                    data.country,
+                    data.location?.country,
+                    data.city?.country,
+                    data.countryCode,
+                    data.country_code,
+                    dayData?.country,
+                    dayData?.location?.country,
+                ];
+
+                let label = '';
+                for (const item of objectCandidates) {
+                    if (item && typeof item === 'object') {
+                        label = item.name || item.label || item.country || label;
+                    }
+                }
+
+                const stringCandidates = rawCandidates.flatMap(extractCountryStrings);
+                for (const item of stringCandidates) {
+                    const flag = getCountryFlag(item);
+                    if (flag) {
+                        const normalizedLabel = label || (item.length > 2 ? item : '');
+                        return { flag, label: normalizedLabel };
+                    }
+                }
+
+                return { flag: '', label };
+            };
+
             // Получение данных с бэкенда
             const fetchWeather = async () => {
                 if (!city.trim()) {
@@ -212,7 +313,21 @@
                                 {/* Заголовок с информацией о городе */}
                                 <div className="bg-white rounded-2xl shadow-2xl p-6 mb-6">
                                     <h2 className="text-3xl font-bold text-gray-800 capitalize">
-                                        {weatherData.city}
+                                        <span className="inline-flex items-center gap-2">
+                                            <span>{weatherData.city}</span>
+                                            {(() => {
+                                                const { flag, label } = resolveCountryDetails(weatherData);
+                                                if (!flag) {
+                                                    return null;
+                                                }
+                                                const flagLabel = label ? `Флаг ${label}` : 'Флаг';
+                                                return (
+                                                    <span className="text-3xl" aria-label={flagLabel} title={label || flagLabel}>
+                                                        {flag}
+                                                    </span>
+                                                );
+                                            })()}
+                                        </span>
                                     </h2>
                                     <p className="text-gray-600">
                                         Прогноз на {weatherData.days} {weatherData.days === 1 ? 'день' : 'дней'}
