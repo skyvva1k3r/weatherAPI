@@ -102,6 +102,28 @@
                 return iconMap[icon] || '🌤️';
             };
 
+            const getCountryFlag = (country) => {
+                if (!country || typeof country !== 'string') {
+                    return '';
+                }
+
+                const trimmed = country.trim();
+                if (!trimmed) {
+                    return '';
+                }
+
+                if (/[\uD83C][\uDDE6-\uDDFF]/.test(trimmed)) {
+                    return trimmed;
+                }
+
+                if (trimmed.length !== 2) {
+                    return '';
+                }
+
+                const code = trimmed.toUpperCase();
+                return String.fromCodePoint(...[...code].map((char) => 127397 + char.charCodeAt()));
+            };
+
             // Получение данных с бэкенда
             const fetchWeather = async () => {
                 if (!city.trim()) {
@@ -212,7 +234,21 @@
                                 {/* Заголовок с информацией о городе */}
                                 <div className="bg-white rounded-2xl shadow-2xl p-6 mb-6">
                                     <h2 className="text-3xl font-bold text-gray-800 capitalize">
-                                        {weatherData.city}
+                                        <span className="inline-flex items-center gap-2">
+                                            <span>{weatherData.city}</span>
+                                            {(() => {
+                                                const countryCode = weatherData.countryCode || weatherData.country || weatherData.country_code;
+                                                const flag = getCountryFlag(countryCode);
+                                                if (!flag) {
+                                                    return null;
+                                                }
+                                                return (
+                                                    <span className="text-3xl" aria-label={`Флаг ${countryCode}`} title={countryCode}>
+                                                        {flag}
+                                                    </span>
+                                                );
+                                            })()}
+                                        </span>
                                     </h2>
                                     <p className="text-gray-600">
                                         Прогноз на {weatherData.days} {weatherData.days === 1 ? 'день' : 'дней'}
