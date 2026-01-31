@@ -4,6 +4,8 @@ import json
 from dotenv import load_dotenv
 import os
 import time
+from geopy.geocoders import Nominatim
+geolocator = Nominatim(user_agent="geoapi_country_lookup", timeout=10)
 
 load_dotenv()
 
@@ -35,6 +37,9 @@ def get_data(city, days):
             load = json.loads(r.get(f"{city}_{cur}"))
         else:
             load = requests.get(f"https://weather.visualcrossing.com/VisualCrossingWebServices/rest/services/timeline/{city}?key={key}").json()
+        lat, lon = load["latitude"], load["longitude"]
+        location = geolocator.reverse((lat, lon), language="en")
+        country = location.raw["address"]["country"]
         load = load["days"]
         for i in range(days):
             temp = dict()
@@ -43,7 +48,8 @@ def get_data(city, days):
                 if j == "tempmax" or j == "tempmin" or j == "feelslike":
                     temp[j] = round(((temp[j] -32)*5)/9, 1)
             res.append(temp)
-        return {"status" : "success", 
+        return {"status" : "success",
+                "country" : country, 
                 "city" : city, 
                 "days" : days,
                 "data" : res}
