@@ -124,6 +124,62 @@
                 return String.fromCodePoint(...[...code].map((char) => 127397 + char.charCodeAt()));
             };
 
+            const resolveCountryDetails = (data) => {
+                if (!data) {
+                    return { flag: '', label: '' };
+                }
+
+                const candidates = [
+                    data.countryCode,
+                    data.country_code,
+                    data.country,
+                    data.location?.countryCode,
+                    data.location?.country_code,
+                    data.location?.country,
+                    data.city?.country,
+                    data.city?.countryCode,
+                    data.city?.country_code,
+                ];
+
+                const objectCandidates = [
+                    data.country,
+                    data.location?.country,
+                    data.city?.country,
+                ];
+
+                for (const item of objectCandidates) {
+                    if (item && typeof item === 'object') {
+                        candidates.unshift(
+                            item.flag,
+                            item.emoji,
+                            item.code,
+                            item.iso2,
+                            item.alpha2,
+                            item.countryCode,
+                            item.country_code,
+                            item.name,
+                            item.label
+                        );
+                    }
+                }
+
+                let label = '';
+                for (const item of objectCandidates) {
+                    if (item && typeof item === 'object') {
+                        label = item.name || item.label || item.country || label;
+                    }
+                }
+
+                for (const item of candidates) {
+                    const flag = getCountryFlag(item);
+                    if (flag) {
+                        return { flag, label: label || item };
+                    }
+                }
+
+                return { flag: '', label };
+            };
+
             // Получение данных с бэкенда
             const fetchWeather = async () => {
                 if (!city.trim()) {
@@ -237,13 +293,13 @@
                                         <span className="inline-flex items-center gap-2">
                                             <span>{weatherData.city}</span>
                                             {(() => {
-                                                const countryCode = weatherData.countryCode || weatherData.country || weatherData.country_code;
-                                                const flag = getCountryFlag(countryCode);
+                                                const { flag, label } = resolveCountryDetails(weatherData);
                                                 if (!flag) {
                                                     return null;
                                                 }
+                                                const flagLabel = label ? `Флаг ${label}` : 'Флаг';
                                                 return (
-                                                    <span className="text-3xl" aria-label={`Флаг ${countryCode}`} title={countryCode}>
+                                                    <span className="text-3xl" aria-label={flagLabel} title={label || flagLabel}>
                                                         {flag}
                                                     </span>
                                                 );
