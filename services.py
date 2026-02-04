@@ -39,7 +39,7 @@ def get_data(city, days):
             load = requests.get(f"https://weather.visualcrossing.com/VisualCrossingWebServices/rest/services/timeline/{city}?key={key}").json()
         lat, lon = load["latitude"], load["longitude"]
         location = geolocator.reverse((lat, lon), language="en")
-        country = location.raw["address"]["country"]
+        country = location.raw["address"]["country_code"]
         load = load["days"]
         for i in range(days):
             temp = dict()
