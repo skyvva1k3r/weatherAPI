@@ -12,7 +12,6 @@ load_dotenv()
 API_KEY = os.getenv("API_KEY")
 
 r = redis.Redis(host='localhost', port=6379, decode_responses=True)
-key = f"{API_KEY}"
 
 def get_data(city, days):
         cur = f"{time.strftime('%Y-%m-%d', time.localtime())}"
@@ -28,15 +27,18 @@ def get_data(city, days):
         if online:
             if r.exists(f"{city}_{cur}") == 0:
                 print("No data in Redis, fetching...")
-                response = requests.get(f"https://weather.visualcrossing.com/VisualCrossingWebServices/rest/services/timeline/{city}?key={key}")
+                response = requests.get(f"https://weather.visualcrossing.com/VisualCrossingWebServices/rest/services/timeline/{city}?key={API_KEY}")
                 if response.status_code != 200:
                     return {"error": "City not found"}
                 r.set(f"{city}_{cur}", json.dumps(response.json()))
-            else: 
+            else:
                 print("Data in Redis, fetching...")
             load = json.loads(r.get(f"{city}_{cur}"))
         else:
-            load = requests.get(f"https://weather.visualcrossing.com/VisualCrossingWebServices/rest/services/timeline/{city}?key={key}").json()
+            response = requests.get(f"https://weather.visualcrossing.com/VisualCrossingWebServices/rest/services/timeline/{city}?key={API_KEY}")
+            if response.status_code != 200:
+                return {"error": "City not found"}
+            load = response.json()
         lat, lon = load["latitude"], load["longitude"]
         location = geolocator.reverse((lat, lon), language="en")
         country = location.raw["address"]["country_code"]
