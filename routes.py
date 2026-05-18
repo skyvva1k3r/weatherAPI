@@ -1,12 +1,12 @@
 from flask import jsonify, send_file, request
 from services import get_data
-from __main__ import app
+from flask_app import app
 
 @app.route('/')
 def index():
     try:
         return send_file('weather-app(AI gen.).html')
-    except:
+    except Exception:
         return jsonify({"message": "Weather API is running. Use /weather endpoint"}), 200
     
     print("master")
@@ -22,7 +22,7 @@ def weather():
     except ValueError:
         return jsonify({"error": "Days parameter must be an integer"}), 400
     if days > 15:
-        return jsonify({"error": "Days parameter must be less than 14"}), 400
+        return jsonify({"error": "Days parameter must be less than or equal to 15"}), 400
     if days < 1:
         return jsonify({"error": "Days parameter must be greater than 0"}), 400
 
