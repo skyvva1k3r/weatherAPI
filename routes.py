@@ -9,6 +9,8 @@ def index():
     except:
         return jsonify({"message": "Weather API is running. Use /weather endpoint"}), 200
     
+    print("master")
+    
 @app.route('/weather')
 def weather():
     city = request.args.get('city')
