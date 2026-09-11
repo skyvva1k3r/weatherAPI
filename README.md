@@ -25,7 +25,7 @@ A [Flask](https://flask.palletsprojects.com/) weather API with a React (CDN, no 
 ```bash
 git clone https://github.com/skyvva1k3r/weatherAPI.git
 cd weatherAPI
-pip install flask flask-cors redis requests python-dotenv geopy
+pip install flask flask-cors redis requests python-dotenv geopy gunicorn
 ```
 
 ## Configuration
@@ -43,6 +43,12 @@ python main.py
 ```
 
 Starts on `http://localhost:5000`. Open [`weather-app(AI gen.).html`](<weather-app(AI gen.).html>) in a browser — the backend must be running for it to fetch data.
+
+For production, the Flask `app` object also lives in [`wsgi.py`](wsgi.py), so it can be served with a real WSGI server instead of Flask's dev server:
+
+```bash
+gunicorn wsgi:app
+```
 
 ## API
 
@@ -104,7 +110,7 @@ Errors: `400` invalid params, `404` city not found.
 ```bash
 git clone https://github.com/skyvva1k3r/weatherAPI.git
 cd weatherAPI
-pip install flask flask-cors redis requests python-dotenv geopy
+pip install flask flask-cors redis requests python-dotenv geopy gunicorn
 ```
 
 ## Настройка
@@ -122,6 +128,12 @@ python main.py
 ```
 
 Стартует на `http://localhost:5000`. Откройте [`weather-app(AI gen.).html`](<weather-app(AI gen.).html>) в браузере — для получения данных backend должен быть запущен.
+
+Для продакшена объект `app` также лежит в [`wsgi.py`](wsgi.py), поэтому вместо dev-сервера Flask можно использовать полноценный WSGI-сервер:
+
+```bash
+gunicorn wsgi:app
+```
 
 ## Ошибки
 
