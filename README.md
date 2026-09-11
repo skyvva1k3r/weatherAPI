@@ -1,316 +1,132 @@
-# 🌤️ Weather API
+# Weather API
 
-Приложение для получения прогноза погоды с использованием Flask API и React фронтенда.
+A [Flask](https://flask.palletsprojects.com/) weather API with a React (CDN, no build step) frontend. Fetches forecasts from the [Visual Crossing](https://www.visualcrossing.com/weather-api) API, resolves the country from coordinates via [Nominatim](https://nominatim.org/), and caches responses in Redis for 24 hours.
 
-## 📋 Описание
+## Features
 
-Полноценное веб-приложение для просмотра прогноза погоды в любом городе мира. Использует Visual Crossing Weather API для получения данных о погоде с кэшированием в Redis для оптимизации запросов.
+- `GET /weather?city=<city>&days=<1-15>` — temperature (converted °F → °C), humidity, wind, precipitation, UV index, pressure, visibility and conditions per day
+- Redis caching (24h TTL) per `city + date` — falls back transparently to uncached requests if Redis isn't running
+- Serves a single-file React frontend at `/`
+- Input validation (`days` between 1 and 15) and JSON error responses
 
-## 📁 Структура проекта
+## Tech stack
 
-```
-weatherAPI/
-├── main.py              # Backend Flask API
-├── weather-app.html     # Frontend React приложение
-├── .env                 # Переменные окружения (не в Git)
-├── .gitignore          # Игнорируемые файлы
-└── README.md           # Документация
-```
+- **Backend:** Flask, Flask-CORS, Redis, Requests, geopy
+- **Frontend:** React 18 + Tailwind CSS, loaded from CDN in [`weather-app(AI gen.).html`](<weather-app(AI gen.).html>) — no build step needed
 
-## 🛠️ Технологии
+## Requirements
 
-### Backend (main.py)
-- **Flask** - веб-фреймворк
-- **Flask-CORS** - обработка CORS запросов
-- **Redis** - кэширование данных погоды
-- **Requests** - HTTP запросы к внешнему API
-- **python-dotenv** - управление переменными окружения
+- Python 3.10+
+- A [Visual Crossing](https://www.visualcrossing.com/weather-api) API key (free tier: 500 requests/day)
+- Redis (optional — the app works without it, just without caching)
 
-### Frontend (weather-app.html)
-- **React 18** - UI библиотека
-- **Tailwind CSS** - стилизация
-- **Babel** - компиляция JSX
+## Installation
 
-## 📦 Установка
-
-### 1. Клонируй репозиторий
 ```bash
 git clone https://github.com/skyvva1k3r/weatherAPI.git
 cd weatherAPI
+pip install flask flask-cors redis requests python-dotenv geopy
 ```
 
-### 2. Установи зависимости Python
-```bash
-pip install flask flask-cors redis requests python-dotenv
+## Configuration
+
+Create a `.env` file in the project root:
+
+```
+API_KEY=your_visual_crossing_api_key
 ```
 
-### 3. Настрой переменные окружения
-Создай файл `.env` в корне проекта:
-```
-API_KEY=твой_ключ_от_visual_crossing
-```
+## Running
 
-Получить API ключ можно на: https://www.visualcrossing.com/weather-api
-
-### 4. (Опционально) Установи и запусти Redis
-
-**Windows:**
-- Скачай Redis для Windows: https://github.com/microsoftarchive/redis/releases
-- Или используй WSL/Docker
-
-**Linux/Mac:**
-```bash
-# Ubuntu/Debian
-sudo apt-get install redis-server
-sudo service redis-server start
-
-# Mac
-brew install redis
-brew services start redis
-```
-
-**Без Redis:** Приложение будет работать и без Redis, но запросы к внешнему API будут выполняться каждый раз без кэширования.
-
-## 🚀 Запуск
-
-### 1. Запусти Flask сервер
 ```bash
 python main.py
 ```
 
-Сервер запустится на `http://localhost:5000`
+Starts on `http://localhost:5000`. Open [`weather-app(AI gen.).html`](<weather-app(AI gen.).html>) in a browser — the backend must be running for it to fetch data.
 
-Ты увидишь:
-```
-✅ Redis подключен  (если Redis запущен)
-или
-⚠️ Redis недоступен, работаем без кэша  (если Redis не запущен)
+## API
 
-* Running on http://127.0.0.1:5000
-```
+### `GET /weather`
 
-### 2. Открой фронтенд
-Открой файл `weather-app.html` в браузере двойным кликом.
+| Param | Required | Notes |
+|---|---|---|
+| `city` | yes | city name |
+| `days` | no | 1–15, default 7 |
 
-**Важно:** Flask сервер должен быть запущен, иначе фронтенд не сможет получить данные!
-
-## 📖 Использование
-
-### Веб-интерфейс
-1. Введи название города на английском (например: Vienna, Tokyo, Moscow)
-2. Выбери количество дней прогноза (1-15)
-3. Нажми "Найти"
-4. Получи детальный прогноз погоды
-
-### API Endpoints
-
-#### `GET /weather`
-Получить прогноз погоды для города
-
-**Параметры запроса:**
-- `city` (обязательный) - название города
-- `days` (опциональный, по умолчанию 7) - количество дней прогноза (1-15)
-
-**Пример запроса:**
 ```bash
 curl "http://localhost:5000/weather?city=Vienna&days=7"
 ```
 
-**Пример ответа:**
 ```json
 {
   "status": "success",
   "city": "vienna",
+  "country": "at",
   "days": 7,
   "data": [
-    {
-      "datetime": "2025-10-10",
-      "tempmax": 15.5,
-      "tempmin": 8.3,
-      "feelslike": 12.1,
-      "conditions": "Partly cloudy",
-      "icon": "partly-cloudy-day",
-      "humidity": 65,
-      "windspeed": 12.5,
-      "visibility": 10.0,
-      "pressure": 1013.2,
-      "precip": 0.0,
-      "precipprob": 20,
-      "uvindex": 5
-    }
+    { "datetime": "2026-09-11", "tempmax": 15.5, "tempmin": 8.3, "conditions": "Partly cloudy", "...": "..." }
   ]
 }
 ```
 
-**Коды ошибок:**
-- `400` - Некорректные параметры запроса
-- `404` - Город не найден
-- `500` - Внутренняя ошибка сервера
+Errors: `400` invalid params, `404` city not found.
 
-## ⚙️ Конфигурация
+## License
 
-### Переменные окружения
-- `API_KEY` - ключ API от Visual Crossing (обязательно)
-- `PORT` - порт для запуска сервера (по умолчанию 5000)
-
-### Параметры Redis
-- **Host:** localhost
-- **Port:** 6379
-- **TTL кэша:** 24 часа
-
-### Параметры приложения
-- **Максимальное количество дней:** 15
-- **Температура:** Конвертируется из Фаренгейта в Цельсий
-- **Timeout внешнего API:** 10 секунд
-
-## 🔧 Архитектура
-
-### Backend (main.py)
-
-```
-┌─────────────┐
-│   Client    │
-└──────┬──────┘
-       │
-       │ HTTP Request
-       ▼
-┌─────────────┐
-│    Flask    │
-│   Server    │
-└──────┬──────┘
-       │
-       ├─────────────┐
-       ▼             ▼
-┌─────────┐   ┌───────────────┐
-│  Redis  │   │ Visual Crossing│
-│  Cache  │   │   Weather API  │
-└─────────┘   └───────────────┘
-```
-
-**Логика работы:**
-1. Клиент отправляет запрос на `/weather?city=Vienna&days=7`
-2. Flask проверяет наличие данных в Redis кэше
-3. Если данные есть и актуальны (< 24 часов) - возвращает из кэша
-4. Если данных нет - запрашивает у Visual Crossing API
-5. Сохраняет полученные данные в Redis с TTL 24 часа
-6. Конвертирует температуру из °F в °C
-7. Возвращает обработанные данные клиенту
-
-### Frontend (weather-app.html)
-
-**Компоненты:**
-- `WeatherApp` - главный компонент приложения
-- SVG иконки - компоненты для визуализации
-- Карточки погоды - отображение прогноза по дням
-
-**Состояния:**
-- `city` - введенный город
-- `days` - количество дней
-- `weatherData` - полученные данные о погоде
-- `loading` - индикатор загрузки
-- `error` - сообщения об ошибках
-
-## 📊 Данные погоды
-
-Приложение отображает следующие метрики:
-- 🌡️ Температура (макс/мин/ощущаемая)
-- 💧 Влажность (%)
-- 💨 Скорость ветра (км/ч)
-- 🌧️ Вероятность осадков (%)
-- 👁️ Видимость (км)
-- 🎚️ Атмосферное давление (мбар)
-- ☀️ УФ индекс
-- 📊 Количество осадков (мм)
-- 🌤️ Условия погоды
-- 🎨 Иконка погоды
-
-## 🐛 Решение проблем
-
-### Ошибка "Не удалось подключиться к серверу"
-```
-Failed to fetch
-```
-**Причина:** Flask сервер не запущен  
-**Решение:** Убедись что `python main.py` запущен и работает на порту 5000
-
-### Ошибка подключения к Redis
-```
-redis.exceptions.ConnectionError: Connection refused
-```
-**Решение:** 
-- Запусти Redis: `redis-server` (Linux/Mac) или запусти Redis service (Windows)
-- Или просто игнорируй - приложение будет работать без кэша
-
-### Ошибка "City not found"
-**Причины:**
-- Неправильное название города (используй английские названия)
-- Проблемы с API ключом
-- Исчерпан лимит запросов к API (500 запросов/день на бесплатном плане)
-
-**Решение:** Проверь правильность названия города и валидность API ключа в `.env` файле.
-
-### CORS ошибки
-```
-Access to fetch has been blocked by CORS policy
-```
-**Решение:** Убедись что в `main.py` есть строки:
-```python
-from flask_cors import CORS
-CORS(app)
-```
-
-### Медленная загрузка данных
-**Причины:**
-- Отсутствие Redis (каждый запрос идет к внешнему API)
-- Медленный интернет
-- Проблемы с Visual Crossing API
-
-**Решение:** Установи и запусти Redis для кэширования данных.
-
-### Порт 5000 уже занят
-```
-OSError: [Errno 48] Address already in use
-```
-**Решение:** 
-- Останови другое приложение на порту 5000
-- Или измени порт в переменных окружения: `PORT=8000 python main.py`
-
-## 🔐 Безопасность
-
-- ✅ API ключ хранится в `.env` файле (не коммитится в Git)
-- ✅ Валидация входных параметров
-- ✅ Обработка ошибок и исключений
-- ✅ Timeout для внешних запросов
-- ⚠️ Для продакшена рекомендуется:
-  - Использовать HTTPS
-  - Добавить rate limiting
-  - Настроить proper CORS политику
-  - Использовать gunicorn вместо встроенного Flask сервера
-
-## 📝 Лицензия
-
-MIT License - свободное использование
-
-## 👨‍💻 Автор
-
-[@skyvva1k3r](https://github.com/skyvva1k3r)
-
-## 🙏 Благодарности
-
-- [Visual Crossing Weather API](https://www.visualcrossing.com/) - данные о погоде
-- [Flask](https://flask.palletsprojects.com/) - веб-фреймворк
-- [React](https://react.dev/) - UI библиотека
-- [Tailwind CSS](https://tailwindcss.com/) - стилизация
-
-## 📞 Поддержка
-
-Если возникли вопросы или проблемы:
-1. Создай Issue в репозитории
-2. Проверь раздел "Решение проблем" выше
-3. Убедись что все зависимости установлены корректно
+[MIT](LICENSE)
 
 ---
 
-**Enjoy the weather! ☀️🌧️❄️**
+# Weather API (Русский)
 
-https://roadmap.sh/projects/weather-api-wrapper-service
+Погодное API на [Flask](https://flask.palletsprojects.com/) с React-фронтендом (через CDN, без сборки). Прогноз берётся из [Visual Crossing](https://www.visualcrossing.com/weather-api), страна определяется по координатам через [Nominatim](https://nominatim.org/), ответы кэшируются в Redis на 24 часа.
+
+## Возможности
+
+- `GET /weather?city=<город>&days=<1-15>` — температура (конвертация °F → °C), влажность, ветер, осадки, УФ-индекс, давление, видимость и описание погоды по дням
+- Кэширование в Redis (TTL 24ч) по ключу `город + дата` — при недоступном Redis приложение прозрачно работает без кэша
+- Отдаёт одностраничный React-фронтенд на `/`
+- Валидация параметров (`days` от 1 до 15) и JSON-ошибки
+
+## Стек
+
+- **Backend:** Flask, Flask-CORS, Redis, Requests, geopy
+- **Frontend:** React 18 + Tailwind CSS, подключаются через CDN в [`weather-app(AI gen.).html`](<weather-app(AI gen.).html>) — сборка не нужна
+
+## Требования
+
+- Python 3.10+
+- API-ключ [Visual Crossing](https://www.visualcrossing.com/weather-api) (бесплатный план: 500 запросов/день)
+- Redis (опционально — приложение работает и без него, просто без кэша)
+
+## Установка
+
+```bash
+git clone https://github.com/skyvva1k3r/weatherAPI.git
+cd weatherAPI
+pip install flask flask-cors redis requests python-dotenv geopy
+```
+
+## Настройка
+
+Создайте файл `.env` в корне проекта:
+
+```
+API_KEY=ваш_ключ_visual_crossing
+```
+
+## Запуск
+
+```bash
+python main.py
+```
+
+Стартует на `http://localhost:5000`. Откройте [`weather-app(AI gen.).html`](<weather-app(AI gen.).html>) в браузере — для получения данных backend должен быть запущен.
+
+## Ошибки
+
+`400` — некорректные параметры, `404` — город не найден.
+
+## Лицензия
+
+[MIT](LICENSE)
